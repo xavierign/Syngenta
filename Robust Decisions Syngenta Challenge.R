@@ -552,12 +552,15 @@ trainDS <- cbind(trainDS,comp.w)
 PCAcalc.s <- PCAs$rotation
 PCAcalc.w <- PCAw$rotation
 
+#back up the trainDS
+trainDS.bu <- trainDS
+
 ##---- 4. EXPLORE VARIETIES INTO GENERATE MIX.----
 #parameters
-min.scenarios <- 20
+min.scenarios <- 40
 
 #create a table of varieties in each scenario.
-var.mat <- tapply(trainDS$VARIETY, list(trainDS$SEASON, trainDS$SITE), 
+var.mat <- tapply(trainDS$VARIETY, trainDS$SCENARIO, 
                   FUN = function(x) unique(x))
 #count which are the pairs of varieties repeated in elements of a matrix.
 varieties <- names(table(trainDS$VARIETY)[table(trainDS$VARIETY)>min.scenarios])
@@ -567,28 +570,109 @@ for (i in 1:(length(varieties)-1)){
   for (j in (1+i):length(varieties)){
     Var1 <- varieties[i]
     Var2 <- varieties[j]
-    Count <- 0
-    var.grid <- rbind(var.grid,data.frame(Var1,Var2,Count))
+    var.grid <- rbind(var.grid,data.frame(Var1,Var2))
   }
 }
 
 #convert columns to string
 var.grid[, c(1,2)] <- sapply(var.grid[, c(1,2)], as.character)
 
+scen.list <- vector("list", nrow(var.grid))
 #loop 
-for (list in Filter(Negate(is.null), var.mat)){
-  for (row in 1:nrow(var.grid)){
-    if (sum(c(var.grid[row,1],var.grid[row,2] )%in% unlist(list))>1){
-      var.grid[row,3] <- var.grid[row,3] +1
+for (sc in names(var.mat)){
+    for (row in 1:nrow(var.grid)){
+      if (sum(c(var.grid[row,1],var.grid[row,2] )%in% unlist(var.mat[sc]))>1){
+        scen.list[[row]]<- c(scen.list[[row]],sc)
+      }
     }
-  }
 }
 
-var.grid[var.grid$Count>min.scenarios,]
+#keep only those records with more than 20 scen.
+var.grid <- var.grid[(lapply(scen.list, length)>min.scenarios),]
+scen.list <- scen.list[(lapply(scen.list, length)>min.scenarios)]
 
 ##---- . GENERATE MIX----
+#generate average variety_YI - scenario
+yield.ave <- with(trainDS, tapply(VARIETY_YI, list(VARIETY, SCENARIO), mean))
 
-for 
+#generate data row 1 for each scenario (clear not used data)
+scen.data <- trainDS[!duplicated(trainDS$SCENARIO),]
+#remove unused data
+names.to.del <- c("SEASON","BREEDING_G","EXTNO","VARIETY","VARIETY_YI","CHECK_YIEL",
+                  "YIELD_DIFF")
+scen.data[,names.to.del] <- NA
+row.names(scen.data) <- scen.data$SCENARIO
+
+#for pair in var.grid
+
+comb <- data.frame(SCENARIO = as.character(0), 
+                   VARIETY = as.character(0), 
+                   VARIETY_YI = as.numeric(0),
+                   stringsAsFactors=F)
+
+for (row in 1:nrow(var.grid)) {
+    #generate name text 25 50 75 <- 3 new variety-options
+    opt1 <- paste(c('25',var.grid[row,1],'_75',var.grid[row,2]), collapse="")
+    opt2 <- paste(c('50',var.grid[row,1],'_50',var.grid[row,2]), collapse="")
+    opt3 <- paste(c('75',var.grid[row,1],'_25',var.grid[row,2]), collapse="")
+    
+    #for scen in list 
+    for (scen in scen.list[[row]]){
+        #copy.row <- scen.data[scen,]
+        #copy 3 lines with the scen data
+        SCENA <- scen
+        
+        #1
+        VARI <- opt1
+        VARI_YI <- yield.ave[var.grid[row,1],scen]*0.25 +
+                               yield.ave[var.grid[row,2],scen]*0.75
+        comb <- rbind(comb, c(SCENA,VARI,VARI_YI))
+        
+        #2
+        VARI <- opt2
+        VARI_YI <- yield.ave[var.grid[row,1],scen]*0.5 +
+                               yield.ave[var.grid[row,2],scen]*0.5
+        comb <- rbind(comb, c(SCENA,VARI,VARI_YI))
+        
+        #3
+        VARI <- opt3
+        VARI_YI <- yield.ave[var.grid[row,1],scen]*0.75 +
+                               yield.ave[var.grid[row,2],scen]*0.25
+        comb <- rbind(comb, c(SCENA,VARI,VARI_YI))
+     
+        #overwrigth the variety name and average variety yield (25 50 75)
+        #add the 3 rows to the trainDS 
+        #cat(paste("-", scen))
+    }
+    cat(paste("....", row))
+}
+#remove firs row
+comb <- comb[-1,]
+
+#convert as data frame and consider variety yield as numeric
+comb$VARIETY_YI <- as.numeric(comb$VARIETY_YI)
+
+#store the namos of scen.data
+scen.names <- names(scen.data)
+
+#remove variety and variety_yi from the 
+scen.data <- scen.data[,!(scen.names %in% c('VARIETY','VARIETY_YI'))]
+
+#merge the dataframe
+comb1 <- merge(comb, scen.data, by = c('SCENARIO'))
+
+#reorder the columns
+comb1 <- comb1[,scen.names]
+
+#convert variety in char before merge
+trainDS$VARIETY <- as.character(trainDS$VARIETY)
+
+#merge with the trainDS
+trainDS <- rbind(trainDS,comb1)
+
+#convert variety in factor again
+trainDS$VARIETY <- as.factor(trainDS$VARIETY)
+ 
 
 ##---- 5. CANDIDATE SELECTION----
 #select the variety with the highest 1st quartile
@@ -601,7 +685,7 @@ first.q$count <- table(trainDS$VARIETY)
 first.q <- first.q[with(first.q, order(-VARIETY_YI)), ]
 
 #V39 seems to be the first candidate. V182 the second
-cand <- 'V39'
+cand <- '75V38_25V98'
 
 #histogram of performances
 hist(trainDS$VARIETY_YI[trainDS$VARIETY==cand])
@@ -674,3 +758,4 @@ first.q[first.q$VARIETY %in% c('V24','V22','V68', 'V81','V25','V200','V171'),]
 # 2. outliers.
 # 4. generate combinations of variety
 # 5. fin the optimal t0, t1, t2, 
+# 6. verify same variety repeated in the same scenario.
