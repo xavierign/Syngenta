@@ -65,10 +65,10 @@ myMap <- get_map(location=myLocation,
                  source="google", maptype="terrain", crop=FALSE, zoom=5)
 
 ggmap(myMap) + 
-  geom_point(aes(x = LONG_, y = LAT), data = trainDS[trainDS$VARIETY=='V39',],
-             alpha = .3, color="blue", size = 1) +
+  geom_point(aes(x = LONG_, y = LAT), data = trainDS,
+             alpha = .4, color="black", size = 1) +
   geom_point(aes(x = LONG_, y = LAT), data = evalDS,
-             alpha = .6, color="red", size = 1)
+             alpha = .9, color="red", size = 1)
 
 ##---- 3. CONVERT AND ANALYZE THE DATA----
 
@@ -591,7 +591,7 @@ for (sc in names(var.mat)){
 var.grid <- var.grid[(lapply(scen.list, length)>min.scenarios),]
 scen.list <- scen.list[(lapply(scen.list, length)>min.scenarios)]
 
-##---- . GENERATE MIX----
+##---- 5. GENERATE MIX----
 #generate average variety_YI - scenario
 yield.ave <- with(trainDS, tapply(VARIETY_YI, list(VARIETY, SCENARIO), mean))
 
@@ -744,10 +744,10 @@ bad.axis <- tapply(trainDS$VARIETY_YI[pred.tree == "BAD"],
 sort(bad.axis[is.na(good.axis)], decreasing=T)
 
 plot(bad.axis,good.axis,
-     xlim=c(30,90),
-     ylim=c(45,80),
+     xlim=c(48,65),
+     ylim=c(48,67),
      type="n")
-text (bad.axis,good.axis, names(good.axis),cex=0.7)
+text (bad.axis,good.axis, names(good.axis),cex=0.4)
 text (bad.axis[cand],good.axis[cand], names(good.axis[cand]),cex=0.7, col='red')
 
 #review the fronteir candidates
