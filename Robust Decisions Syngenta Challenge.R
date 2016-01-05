@@ -109,6 +109,36 @@ RM_BAND_N[trainDS$RM_BAND == '3.00-3.49'] <- 3.25
 
 trainDS$RM_BAND_N <- RM_BAND_N
 
+trainDS$CONUS_PH[trainDS$CONUS_PH< -100] <- 7
+
+#same for eval
+#convert RM_BAND BREEDING_G to factor
+evalDS$RM_BAND<- as.factor(evalDS$RM_BAND)
+evalDS$SOIL_CUBE<- as.factor(evalDS$SOIL_CUBE)
+
+#decompose CLIMATE in 3
+evalDS$CLIMATE1<- as.numeric(substring(evalDS$CLIMATE,1,1))
+evalDS$CLIMATE2<- as.numeric(substring(evalDS$CLIMATE,2,2))
+evalDS$CLIMATE3<- as.numeric(substring(evalDS$CLIMATE,3,3))
+
+#CLIMATE 2 AND CLIMATE 3 HAVE MISSING VALES
+evalDS$CLIMATE2[is.na(evalDS$CLIMATE2)] <- 0
+evalDS$CLIMATE3[is.na(evalDS$CLIMATE3)] <- 0
+
+#decompose SOIL_CUBE in 3
+evalDS$SOIL_CUBE1<- as.numeric(substring(evalDS$SOIL_CUBE,1,1))
+evalDS$SOIL_CUBE2<- as.numeric(substring(evalDS$SOIL_CUBE,2,2))
+evalDS$SOIL_CUBE3<- as.numeric(substring(evalDS$SOIL_CUBE,3,3))
+
+#convert RM_BAND into a number
+RM_BAND_N <- rep(1,length(evalDS$RM_BAND))
+RM_BAND_N[evalDS$RM_BAND == '1.50-1.99'] <- 1.75
+RM_BAND_N[evalDS$RM_BAND == '2.00-2.49'] <- 2.25
+RM_BAND_N[evalDS$RM_BAND == '2.50-2.99'] <- 2.75
+RM_BAND_N[evalDS$RM_BAND == '3.00-3.49'] <- 3.25
+
+evalDS$RM_BAND_N <- RM_BAND_N
+
 #create a table site vs. variety
 site.vs.variety <- table(trainDS$SITE,trainDS$VARIETY)
 
@@ -124,6 +154,19 @@ ssv <- ssv[!duplicated(ssv),]
 #count how many varieties in each site each year.
 ssv.pivot = dcast(ssv, SITE ~ SEASON, value.var = "VARIETY")
 ssv.pivot
+
+##---- 4. CLUSTER ANALYSIS SOIL----
+predictors.soil <- c("LAT","LONG_",
+                     "AREA","RM_25","TOT_IRR_DE",
+                     "SY_DENS","SY_ACRES","CONUS_PH","CONUS_AWC","CONUS_CLAY","CONUS_SILT",
+                     "CONUS_SAND","ISRIC_SAND","ISRIC_SILT","ISRIC_CLAY","ISRIC_PH","ISRIC_CEC",
+                     "EXTRACT_CE","SOIL_CUBE1","SOIL_CUBE2","SOIL_CUBE3","RM_BAND_N")
+
+soil.data <- trainDS[!duplicated(trainDS$SITE),predictors.soil]
+soil.data <- rbind(soil.data, evalDS[,predictors.soil] )
+
+fit.clus <- kmeans(soil.data, 3)
+
 
 ##---- 5. AGREGATION OF WEATHER DATA----
 #define the temrs 1, 2 and 3
@@ -555,7 +598,7 @@ PCAcalc.w <- PCAw$rotation
 #back up the trainDS
 trainDS.bu <- trainDS
 
-##---- 4. EXPLORE VARIETIES INTO GENERATE MIX.----
+##---- 4. EXPLORE VARIETIES TO GENERATE MIX.----
 #parameters
 min.scenarios <- 40
 
