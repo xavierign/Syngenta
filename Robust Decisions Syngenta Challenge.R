@@ -22,6 +22,9 @@ library(reshape2)
 library(cluster)
 library(fpc)
 library(emoa)
+library(gridBase)
+library(grid)
+library(RColorBrewer)
 set.seed(1)
 
 ##---- 1. IMPORT THE DATA ----
@@ -136,7 +139,7 @@ RM_BAND_N[evalDS$RM_BAND == '3.00-3.49'] <- 3.25
 
 evalDS$RM_BAND_N <- RM_BAND_N
 
-##---- 2. RESAMPLE SCENARIOS REPEATED----
+##---- 3. RESAMPLE SCENARIOS REPEATED----
 
 if (take.median == TRUE){
   #reorder
@@ -160,7 +163,7 @@ if (take.median == TRUE){
   trainDS$VARIETY_YI <- tab$VARIETY_YI
 }
 
-##---- 3. CLUSTER ANALYSIS SOIL----
+##---- 4. CLUSTER ANALYSIS SOIL----
 predictors.soil <- c("LAT","LONG_",
                      "AREA","RM_25","TOT_IRR_DE",
                      "SY_DENS","SY_ACRES","CONUS_PH","CONUS_AWC","CONUS_CLAY","CONUS_SILT",
@@ -185,7 +188,7 @@ soil.data$CONUS_PH[is.na(soil.data$CONUS_PH)] <- ph.value
 #scale the data
 soil.data <- scale(soil.data)
 
-fit.clus <- kmeans(soil.data, 3)
+fit.clus <- kmeans(soil.data, 4)
 
 #include the cluster in the dataset
 cluster.eval <- fit.clus$cluster[length(fit.clus$cluster)]
@@ -207,9 +210,14 @@ plot(weig.dist)
 threshold <- 5
 abline(h=threshold)
 
+trainDS$COL <- 'green'
+trainDS$COL[trainDS]
+sites.tk <- names(weig.dist[weig.dist<threshold])
+trainDS$COL[trainDS$SITE %in% sites.tk] <- 'black'
+
 #most similar sites #3230, #22NU, #2202, #2270, #2255
 
-##---- 4. VISUALIZE THE DATA----
+##---- 5. VISUALIZE THE DATA----
 #visualize the kmeans
 plotcluster(soil.data, fit.clus$cluster)
 fit.clus$cluster
@@ -220,15 +228,17 @@ lon_m <- sum(range(trainDS$LONG_))/2
 
 myLocation <- c(lon = lon_m, lat = lat_m)
 
-#myMap <- get_map(location=myLocation,
-#                 source="google", maptype="terrain", crop=FALSE, zoom=5)
-#ggmap(myMap) + 
-#  geom_point(aes(x = LONG_, y = LAT), data = trainDS,
- #            alpha = .4, color=trainDS$CLUSTER, size = 1) +
-#  geom_point(aes(x = LONG_, y = LAT), data = evalDS,
-#             alpha = .9, color="blue", size = 1)
+myMap <- get_map(location=myLocation,
+                 source="google", maptype="terrain", crop=FALSE, zoom=5)
+ggmap(myMap) + 
+  geom_point(aes(x = LONG_, y = LAT), data = trainDS,
+            alpha = 1, color=trainDS$CLUSTER, size = 0.4) +
+  geom_point(aes(x = LONG_, y = LAT), data = trainDS[trainDS$SITE %in% sites.tk,],
+             alpha = 1, color='#1f78b4', size = 0.7) +
+  geom_point(aes(x = LONG_, y = LAT), data = evalDS,
+             alpha = 1, color='#ff7f00', size = 1.4)
 
-##---- 5. DECISION KEEP ONLY THE SOIL CLUSTER----
+##---- 6. DECISION KEEP ONLY THE SOIL CLUSTER----
 if (keep.soil.k ==T){
   #consider just the same cluster! YES or NO?
   trainDS <- trainDS[trainDS$CLUSTER==cluster.eval,]
@@ -240,8 +250,31 @@ if (consider.dist ==T){
   trainDS <- trainDS[trainDS$SITE %in% sites.tk,]
 
 }
+c1 <- 'V41'
+c2 <- 'V187'
+x <- data.frame(V41=trainDS$VARIETY_YI[trainDS$VARIETY=='V41'],
+                V98=trainDS$VARIETY_YI[trainDS$VARIETY==c2]
+                [1:length(trainDS$VARIETY_YI[trainDS$VARIETY=='V41'])])
+tshold1 <- as.numeric(quantile(trainDS$VARIETY_YI[trainDS$VARIETY=='V41'],probs=0.25),type=5)
+tshold2 <-  as.numeric(quantile(trainDS$VARIETY_YI[trainDS$VARIETY==c2],probs=0.25),type=5)
+tshold10 <- as.numeric(quantile(trainDS$VARIETY_YI[trainDS$VARIETY=='V41'],probs=0.01),type=5)
+tshold20 <-  as.numeric(quantile(trainDS$VARIETY_YI[trainDS$VARIETY==c2],probs=0.01),type=5)
 
-##---- 6. AGREGATION OF WEATHER DATA----
+theme_set(theme_grey(base_size = 12))
+data<- melt(x)
+g <- ggplot(data,aes(x=value, fill=variable)) + geom_density(alpha=0.25)
+g <- g + geom_vline(xintercept = tshold1,  colour = '#FFAF94')
+g <- g + geom_vline(xintercept = tshold2,  colour = '#5CD6D6')
+#g <- g + geom_vline(xintercept = tshold10,  colour = '#FFAF94')
+#g <- g + geom_vline(xintercept = tshold20,  colour = '#5CD6D6')
+g <- g + annotate("text", x = tshold1+0.8, y = 0.01, label = "percentile 25% V41", size=3, angle=90 )
+g <- g + annotate("text", x = tshold2-1, y = 0.01, label = "percentile 25% V98", size=3, angle=90 )
+#g <- g + annotate("text", x = tshold10-1, y = 0.01, label = "percentile 1% V41", size=3, angle=90 )
+#g <- g + annotate("text", x = tshold20+0.8, y = 0.01, label = "percentile 1% V180", size=3, angle=90 )
+g <- g + xlab("Yield. Ton/ha") + scale_fill_discrete(name="Variety")
+g 
+
+##---- 7. AGREGATION OF WEATHER DATA----
 #define the temrs 1, 2 and 3
 
 start0 <- 61
@@ -614,7 +647,7 @@ trainDS <- merge(trainDS, agg.data, by = c('SITE','SEASON'))
 # trainDS$PREC_CUR[trainDS$SEASON==2014]<- trainDS$PREC_14[trainDS$SEASON==2014]
 # trainDS$RAD_CUR[trainDS$SEASON==2014]<- trainDS$RAD_14[trainDS$SEASON==2014]
 
-##---- 13. AGREGATION OF DAILY DATA EVAL----
+##---- 8. AGREGATION OF DAILY DATA EVAL----
 #define the booleans t1 t2 t3
 
 t0 <- evalDDS$yday>=start0&evalDDS$yday<start1
@@ -950,7 +983,7 @@ agg.data$TEMP_MED <- evalDS$TEMP_MED
 agg.data$PREC_MED <- evalDS$PREC_MED
 agg.data$RAD_MED <- evalDS$RAD_MED
 
-##---- 7. PCA-----
+##---- 9. PCA-----
 #create PCA with complete cases
 #define predictors
 predictors.soil <- c("LAT","LONG_",
@@ -1012,7 +1045,7 @@ trainDS.bu <- trainDS
 #remove the matrices
 rm(comp.s,comp.w )
 
-##---- 8. VARIETY COMBINATION - TO DO ----
+##---- 10. VARIETY COMBINATION - TO DO ----
 #which varieties appears more than min.scen times.
 min.scenarios <- 10
 
@@ -1026,10 +1059,10 @@ varieties <- names(var.count[var.count>min.scenarios ])
 scen.var.table.bin <- scen.var.table
 scen.var.table.bin[scen.var.table>0] <- 1
 
-##---- 8. DECISION KEEP ONLY THE VARIETIES APPEARING IN SCEN.MIN----
+##---- 11. DECISION KEEP ONLY THE VARIETIES APPEARING IN SCEN.MIN----
 #trainDS <- trainDS [trainDS$VARIETY %in% varieties,]
 
-##---- 9. SELECT MANUALY A SUBSET OF 8-10 CANDIDATES.----
+##---- 12. SELECT MANUALY A SUBSET OF 8-10 CANDIDATES.----
 #generate average variety_YI - scenario
 yield.ave <- with(trainDS, tapply(VARIETY_YI, list(VARIETY, SCENARIO), FUN=median))
 
@@ -1048,7 +1081,7 @@ g <- expand.grid(s,s,s,s,s)
 g <- g[rowSums(g)==1,]
 g <- g[apply(g,1,function(x) sum(x>0))>1,]
 
-candidates.mix <- c('V68','V35','V41','V98','V96','V39','V187','V180') 
+candidates.mix <- c('V180','V187','V35','V39','V41', 'V98','V96','V46') 
 
 #generates a submat matrix to loop. (matrix of comb of varieties)
 submat <- apply(combn(length(candidates.mix),5),1, 
@@ -1160,7 +1193,7 @@ for (row.n in 1:nrow(submat)){
 #remove duplicated
 trainDS <- trainDS[!duplicated(trainDS[,c('SCENARIO','VARIETY')]),]
 
-##---- 11. CANDIDATE EVALUATION----
+##---- 13. CANDIDATE EVALUATION----
 #select the variety with the highest 1st quartile
 first.q <- tapply(trainDS$VARIETY_YI, trainDS$VARIETY, 
                   FUN = quantile, probs=0.25)
@@ -1170,7 +1203,7 @@ first.q <- data.frame (VARIETY =names(first.q) , VARIETY_YI=first.q)
 first.q$count <- table(unique(trainDS[,c('SCENARIO','VARIETY')])[,'VARIETY'])
 #order
 first.q <- first.q[with(first.q, order(-VARIETY_YI)), ]
-first.q[first.q$count>10,] [1:20,]
+first.q[first.q$count>10,] [1:50,]
 
 first.m <- tapply(trainDS$VARIETY_YI, trainDS$VARIETY, 
                   FUN = mean)
@@ -1192,18 +1225,18 @@ first.e <- first.e[with(first.e, order(-VARIETY_YI)), ]
 #order
 first.e[first.e$count>10,] [1:20,]
 
-##---- PLOTING ----
-mat <- matrix(c(1,2,3,4),ncol =2)
-layout(mat,c(1,1), c(1,3))
+##---- 14. PLOTING ----
+mat1 <- matrix(c(1,2,3,4,5,6),ncol =2)
+layout(mat= mat1,widths=c(1,1),heights= c(1,3), respect=FALSE)
 
-##### 9. CANDIDATE SELECTION----
-cand <- first.q[first.q$count>10,][1,'VARIETY']
+#####- 15. CANDIDATE SELECTION----
+#cand <- first.q[first.q$count>10,][1,'VARIETY']
 cand <- 'V187'
 
 #define a preliminary testds
 trainDS.c <- trainDS[trainDS$VARIETY==cand,]
 
-##---- 12. TREE AND TRADE OFF PLOT----
+##---- 16. TREE AND TRADE OFF PLOT----
 
 #generate target categorical value when it is greater than 1st quartil
 target <- quantile(trainDS.c$VARIETY_YI,0.25)
@@ -1238,11 +1271,15 @@ y <- fit.tree$frame$yval2[,5]
 cols <- rgb(1,y,y)
 
 prp(fit.tree, 
-    cex.main=0.8,
-    main=paste('Scenario Classification \n considering ',cand, sep=''))
+    cex.main=0.9,
+    main=paste('Scenario Classification \n considering ',cand, sep=''), 
+    left=F)
 #prp(fit.tree, type=0, extra=1, under=TRUE, uniform=TRUE, 
 #    branch.col=cols, box.col=cols, branch.type=5, yesno=FALSE, faclen=0 
 #)
+
+#type percentile ,type = typep
+typep <- 1
 
 #calculate the data for trade-off chart
 pred.tree <- predict(fit.tree, newdata=trainDS, type="class")
@@ -1258,7 +1295,7 @@ bad.axis <- tapply(trainDS$VARIETY_YI[pred.tree == "BAD"],
 #check NAs in good
 sort(bad.axis[is.na(good.axis)], decreasing=T)
 
-##---- 12. PLOT THE POINTS----
+##---- 17. PLOT THE POINTS----
 
 #determine the paretto frontier
 points <- rbind(-bad.axis,-good.axis)
@@ -1275,7 +1312,7 @@ points <- points[order(points[,1]),]
 
 #names to trace V41
 if (cand=='V41'){
-names.tt <- c('0.1V180_0.9V187', '0.1V180_0.8V187_0.1V39', '0.1V180_0.8V187_0.1V41', 
+names.tt <- c('0.1V180_0.9V187', '0.1V180_0.8V187_0.1V41', 
               '0.1V180_0.7V187_0.2V41', '0.2V180_0.6V187_0.2V41', '0.1V180_0.5V187_0.4V41', 
               '0.1V180_0.4V187_0.5V41', '0.2V180_0.3V187_0.5V41', '0.1V180_0.2V187_0.7V41',  
               '0.1V180_0.1V187_0.8V41',  
@@ -1284,7 +1321,9 @@ names.tt <- c('0.1V180_0.9V187', '0.1V180_0.8V187_0.1V39', '0.1V180_0.8V187_0.1V
               '0.2V180_0.2V41_0.6V98', '0.1V180_0.2V41_0.7V98',  '0.1V180_0.1V41_0.8V98',
               '0.1V41_0.9V98', '0.1V96_0.9V98', '0.2V96_0.8V98', '0.3V96_0.7V98', 
               '0.4V96_0.6V98', 'V96')
-} else {
+
+
+} else if (cand=='V187'){
 names.tt <- c('0.8V35_0.2V39', '0.7V35_0.2V39_0.1V41', '0.5V35_0.3V39_0.2V41', 
               '0.5V35_0.2V39_0.2V41_0.1V98', '0.5V35_0.1V39_0.2V41_0.2V98', 
               '0.4V35_0.2V39_0.3V41_0.1V98', '0.4V35_0.1V39_0.3V41_0.2V98', 
@@ -1294,32 +1333,36 @@ names.tt <- c('0.8V35_0.2V39', '0.7V35_0.2V39_0.1V41', '0.5V35_0.3V39_0.2V41',
               '0.1V180_0.5V41_0.4V98', '0.1V180_0.4V41_0.5V98', 
               '0.1V180_0.2V41_0.7V98', '0.1V180_0.1V41_0.8V98', 
               '0.3V41_0.7V98', '0.2V41_0.8V98', '0.1V41_0.9V98')
+
+
+}else {
+names.tt <- rownames(points)
 }
 
 #names.tt <- rownames(points)
 
-
-
-xlimit=(range(points[,1])+c(-0.5,+1.5))
+xlimit=c(54,74)
+ylim1 = c(59,75)
+if (cand=='0.5V187_0.5V41') {ylim1 = c(59,89)}
 
 par(mar=c(5.1,4.6,4.1,2.1))
     
-plot(points,
+plot2 <- plot(points,
      type="o",
      xlim=xlimit,
-     #ylim=c(64,70),
-     ylim=(range(points[,2])+c(0,+1.5)),
-     xlab="25% percentile of Yield dist. \n BAD-Scenarios",
-     ylab="25% percentile of Yield dist. \n GOOD-Scenarios",
+     ylim=ylim1,
+     #ylim=(range(points[,2])+c(0,+1.5)),
+     xlab="25% percentile of Yield dist. in ton/ha. \n BAD-Scenarios",
+     ylab="25% percentile of Yield dist. in ton/ha.\n GOOD-Scenarios",
      cex=0.5,  cex.axis=0.7, cex.lab=0.7,
-     main='Trade-off alternatives', cex.main=0.8)
+     main='Trade-off alternatives', cex.main=0.9)
 
 text (points[names.tt,1]-0.02,points[names.tt,2]+0.05, names.tt,cex=0.5,srt = 45, pos=4)
 points(bad.axis[cand],good.axis[cand],type="p", col='red', cex=0.5)
 text (bad.axis[cand]-0.15,good.axis[cand]+0.05, 
       names(good.axis[cand]),cex=0.5,srt = 30, pos=4, col='red')
 
-#### 11. COMPUTE ODDS----
+##---- 18. COMPUTE ODDS----
 
 comp.w.eval <- predict(PCAw,newdata=agg.data)
 colnames(comp.w.eval) <- paste('COMP_W_',1:ncol(comp.w.eval),sep='')
@@ -1331,6 +1374,9 @@ if (cand=='V41') {
 } else if (cand=='V187') {
   opt <-'0.1V180_0.5V41_0.4V98'
   prob.bad <- mean(agg.data$dwr.t2.me[9:15]>=3.238095)
+} else if (cand=='0.5V187_0.5V41') {
+  opt <-'0.9V180_0.1V41'
+  prob.bad <- mean(agg.data$COMP_W_1[9:15]< (-0.014))
 }
 
 #probability
@@ -1344,8 +1390,87 @@ points(points2, type='l',col='red',lty=5 )
 points(bad.axis[cand],good.axis[cand],type="p", col='red', cex=0.5)
 points(points[opt,1],points[opt,2], type="p",pch=19, col='red', cex=0.5)
 
-##-- 12. BARPLOT----
-#to do
+#add an arrow with the trend.
+if (cand=='V41') {
+  x0 <- 55
+} else{
+  x0 <- 67
+}
+y0 <- (b-x0*prob.bad)/prob.good
+x1 <- x0 +2
+y1 <- (b-x1*prob.bad)/prob.good
+text (x0+1, y0+0.3, 'p.GOOD', cex=0.6)
+points(rbind(c(x0,y0),c(x1,y0),
+             c(x1,y1)), type='l',lty=1 )
+text (x1+0.3, (y0+y1)/2 , 'p.BAD', cex=0.6, srt = -90)
+
+##---- 19. BARPLOT----
+names.tt[substr(names.tt, 1, 1)=='V'] <- paste(1,
+                                  names.tt[substr(names.tt, 1, 1)=='V'],sep='')
+fram <- data.frame()
+for (s in names.tt){
+  r <- strsplit(s,split='_')
+  for (i in r){
+    a <- unlist(strsplit(i,split="V"))
+    for (j in 1:(length(a)/2)){
+      fram[s,a[2*j]]<-a[2*j-1]  
+    }
+  }
+}
+fram[is.na(fram)] <- 0
+
+fram$x <- 1:nrow(fram)
+
+#rearange the dataset
+n_fram <- data.frame()
+n_fram <- cbind.data.frame(sc=as.numeric(fram$x),var=as.character(colnames(fram)[1]),
+                            prop=as.numeric(fram[,1]))
+
+for (i in 2:(ncol(fram)-1)){
+  temp <- cbind.data.frame(sc=as.numeric(fram$x),var=as.character(colnames(fram)[i]),
+                            prop=as.numeric(fram[,i]))
+  n_fram <- rbind.data.frame(n_fram,temp)
+}
+
+plot.new()              ## suggested by @Josh
+vps1 <- baseViewports()
+pushViewport(vps1$figure) ##   I am in the space of the autocorrelation plot
+vp11 <-plotViewport(c(1.8,1,0,1))
+
+if(cand=='V41'){ 
+  vline <- 10
+  #add 35 and 39 to fram
+  temp1 <- cbind.data.frame(sc=1:nrow(fram), var='35',prop=0)
+  temp2 <- cbind.data.frame(sc=1:nrow(fram), var='39',prop=0)
+  n_fram <- rbind.data.frame(n_fram,temp1,temp2)
+  colors1 <- brewer.pal(7,"Set1")
+} else {
+  vline <- 14 
+  #add 35 and 39 to fram
+  temp1 <- cbind.data.frame(sc=1:nrow(fram), var='96',prop=0)
+  temp2 <- cbind.data.frame(sc=1:nrow(fram), var='187',prop=0)
+  n_fram <- rbind.data.frame(n_fram,temp1,temp2)
+  colors1 <- brewer.pal(7,"Set1")[c(1,2,3,4,5,6,7)]
+}
+
+n_fram <- n_fram[with(n_fram, order(var, sc)), ]
+
+n_fram$var <- paste('V',n_fram$var, sep='')
+
+g <- ggplot(n_fram, aes(x=sc, y=prop, fill=var, order = -as.numeric(var)))
+g <- g + geom_vline(xintercept = vline) 
+g <- g + scale_fill_manual(values=colors1)
+g <- g + geom_area(colour="black", size=.2, alpha=.8)
+g<-g+theme(legend.key.width=unit(0.8,"line")) # Ch
+g<-g+theme(legend.key.height=unit(0.8,"line")) # Ch
+g<-g+theme(legend.key.size =  unit(0.6, "in")) # Change key size in the legend 
+g<-g+theme(legend.text = element_text(size=8)) # Change the size labels in the legend 
+g <- g+ ylab("Proportion of land") + xlab("strategy #")
+g <- g +theme(axis.text=element_text(size=8))
+g <- g + theme(axis.title.x = element_blank())
+
+print(g,vp = vp11)
+popViewport()  
 
 ##---- END. TODO NEXT----
 # 1. analize prim algorithm and scenario discovery.

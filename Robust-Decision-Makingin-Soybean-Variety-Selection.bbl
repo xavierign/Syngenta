@@ -1,0 +1,116 @@
+\begin{thebibliography}{18}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\expandafter\ifx\csname url\endcsname\relax
+  \def\url#1{{\tt #1}}\fi
+\expandafter\ifx\csname urlprefix\endcsname\relax\def\urlprefix{URL }\fi
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \expandafter\ifx\csname doi\endcsname\relax
+  \def\doi#1{doi:\discretionary{}{}{}#1}\fi \else
+  \expandafter\ifx\csname doi\endcsname\relax
+  \def\doi{doi:\discretionary{}{}{}\begingroup \urlstyle{rm}\Url}\fi \fi
+
+\bibitem[{Arrow et~al.(1956)Arrow, Bowker, Daniel, and
+  Sobel}]{arrow1956berkeley}
+Arrow, Kenneth~J, H~Bowker, Cuthbert Daniel, Milton Sobel. 1956.
+\newblock Berkeley symposium on mathematical statistics and probability .
+
+\bibitem[{Bishop(2006)}]{bishop2006pattern}
+Bishop, Christopher~M. 2006.
+\newblock {\it Pattern recognition and machine learning\/}.
+\newblock springer.
+
+\bibitem[{Breiman et~al.(1984)Breiman, Friedman, Stone, and
+  Olshen}]{breiman1984classification}
+Breiman, Leo, Jerome Friedman, Charles~J Stone, Richard~A Olshen. 1984.
+\newblock {\it Classification and regression trees\/}.
+\newblock CRC press.
+
+\bibitem[{Bryant and Lempert(2010)}]{bryant2010thinking}
+Bryant, Benjamin~P, Robert~J Lempert. 2010.
+\newblock Thinking inside the box: a participatory, computer-assisted approach
+  to scenario discovery.
+\newblock {\it Technological Forecasting and Social Change\/} {\bf 77}(1)
+  34--49.
+
+\bibitem[{Groves et~al.(2008)Groves, Davis, Wilkinson, and
+  Lempert}]{groves2008planning}
+Groves, David~G, Martha Davis, Robert Wilkinson, Robert Lempert. 2008.
+\newblock Planning for climate change in the inland empire: Southern
+  california.
+\newblock {\it Water Resources IMPACT\/} {\bf 10}(4) 14--17.
+
+\bibitem[{Hotelling(1933)}]{hotelling1933analysis}
+Hotelling, Harold. 1933.
+\newblock Analysis of a complex of statistical variables into principal
+  components.
+\newblock {\it Journal of educational psychology\/} {\bf 24}(6) 417.
+
+\bibitem[{Kahle and Wickham(2013)}]{kahle2013ggmap}
+Kahle, David, Hadley Wickham. 2013.
+\newblock ggmap: A package for spatial visualization with google maps and
+  openstreetmap. r package version 2.3.
+
+\bibitem[{Lempert(2003)}]{lempert2003shaping}
+Lempert, Robert~J. 2003.
+\newblock {\it Shaping the next one hundred years: new methods for
+  quantitative, long-term policy analysis\/}.
+\newblock Rand Corporation.
+
+\bibitem[{Lempert et~al.(2008)Lempert, Bryant, and
+  Bankes}]{lempert2008comparing}
+Lempert, Robert~J, Benjamin~P Bryant, Steven~C Bankes. 2008.
+\newblock Comparing algorithms for scenario discovery.
+\newblock {\it RAND, Santa Monica, CA\/} .
+
+\bibitem[{Lempert et~al.(2006)Lempert, Groves, Popper, and
+  Bankes}]{lempert2006general}
+Lempert, Robert~J, David~G Groves, Steven~W Popper, Steve~C Bankes. 2006.
+\newblock A general, analytic method for generating robust strategies and
+  narrative scenarios.
+\newblock {\it Management science\/} {\bf 52}(4) 514--528.
+
+\bibitem[{Lempert et~al.(1996)Lempert, Schlesinger, and Bankes}]{lempert1996we}
+Lempert, Robert~J, Michael~E Schlesinger, Steve~C Bankes. 1996.
+\newblock When we don't know the costs or the benefits: Adaptive strategies for
+  abating climate change.
+\newblock {\it Climatic Change\/} {\bf 33}(2) 235--274.
+
+\bibitem[{Linsmeier and Pearson(2000)}]{linsmeier2000value}
+Linsmeier, Thomas~J, Neil~D Pearson. 2000.
+\newblock Value at risk.
+\newblock {\it Financial Analysts Journal\/} {\bf 56}(2) 47--67.
+
+\bibitem[{Maechler et~al.(2015)Maechler, Rousseeuw, Struyf, Hubert, Hornik,
+  Studer, and Roudier}]{maechler2015package}
+Maechler, Martin, Peter Rousseeuw, Anja Struyf, Mia Hubert, Kurt Hornik,
+  Matthias Studer, Pierre Roudier. 2015.
+\newblock Package ‘cluster’.
+
+\bibitem[{Messina et~al.(1999)Messina, Hansen, and Hall}]{messina1999land}
+Messina, CD, JW~Hansen, AJ~Hall. 1999.
+\newblock Land allocation conditioned on el ni{\~n}o-southern oscillation
+  phases in the pampas of argentina.
+\newblock {\it Agricultural Systems\/} {\bf 60}(3) 197--212.
+
+\bibitem[{Pedersen(2006)}]{spd2006}
+Pedersen, Palle. 2006.
+\newblock Soybean planting date.
+\newblock
+  \urlprefix\url{http://www.ipm.iastate.edu/ipm/icm/2006/4-3/soyplant.html}.
+
+\bibitem[{Pedersen and Elbert(2004)}]{pedersen2004soybean}
+Pedersen, Palle, Bob Elbert. 2004.
+\newblock {\it Soybean growth and development\/}.
+\newblock Iowa State University, University Extension Ames, IA.
+
+\bibitem[{Rivera-Ferre and Ortega-Cerd{\`a}(2011)}]{rivera2011recognising}
+Rivera-Ferre, Marta~G, Miquel Ortega-Cerd{\`a}. 2011.
+\newblock Recognising ignorance in decision-making.
+\newblock {\it EMBO reports\/} {\bf 12}(5) 393--397.
+
+\bibitem[{Therneau et~al.(2015)Therneau, Atkinson, Ripley, and
+  Ripley}]{therneau2015package}
+Therneau, Terry, Beth Atkinson, Brian Ripley, Maintainer~Brian Ripley. 2015.
+\newblock Package ‘rpart’.
+
+\end{thebibliography}
